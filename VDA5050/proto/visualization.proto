@@ -1,0 +1,35 @@
+// VDA 5050 v3.0.0 — Visualization message
+// Subtopic: /visualization
+//
+// Mobile robot position and/or velocity for visualization purposes. Can be
+// published at a higher rate if desired. Since bandwidth may be expensive
+// depending on the update rate for this topic, all fields except the
+// header and referenceStateHeaderId are optional.
+
+syntax = "proto3";
+
+package vda5050.v3;
+
+import "common.proto";
+import "state.proto";
+
+// Visualization message.
+message Visualization {
+  // Standard message header.
+  Header header = 1;
+
+  // Header ID of the state message this visualization message refers to.
+  uint32 reference_state_header_id = 2;
+
+  // Path within the currently active order. Optional.
+  PlannedPath planned_path = 3;
+
+  // Intermediate path with ETAs at closer waypoints. Optional.
+  IntermediatePath intermediate_path = 4;
+
+  // Mobile robot position. Optional.
+  MobileRobotPosition mobile_robot_position = 5;
+
+  // Mobile robot velocity. Optional.
+  Velocity velocity = 6;
+}

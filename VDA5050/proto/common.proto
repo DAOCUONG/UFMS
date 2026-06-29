@@ -1,0 +1,461 @@
+// VDA 5050 v3.0.0 — Common types
+// Shared messages and enums used across the VDA 5050 protocol topics.
+//
+// Reference: VDA 5050 v3.0.0 (https://www.vda.de/vda-5050)
+
+syntax = "proto3";
+
+package vda5050.v3;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+// ---------------------------------------------------------------------------
+// Common header (required on every top-level VDA 5050 message)
+// ---------------------------------------------------------------------------
+
+// Standard message header. Present on connection, instantActions, order,
+// state, visualization, factsheet, zoneSet, and responses.
+message Header {
+  // Header ID of the message. The headerId is defined per topic and
+  // incremented by 1 with each sent (but not necessarily received) message.
+  uint32 header_id = 1;
+
+  // Timestamp in ISO 8601 UTC with millisecond precision.
+  // JSON equivalent: "YYYY-MM-DDTHH:mm:ss.fffZ".
+  google.protobuf.Timestamp timestamp = 2;
+
+  // Version of the protocol [Major].[Minor].[Patch] (e.g., "3.0.0").
+  string version = 3;
+
+  // Manufacturer of the mobile robot.
+  string manufacturer = 4;
+
+  // Serial number of the mobile robot.
+  string serial_number = 5;
+}
+
+// ---------------------------------------------------------------------------
+// Common enums
+// ---------------------------------------------------------------------------
+
+// State of the connection between mobile robot and MQTT broker.
+// Topic: connection.
+enum ConnectionState {
+  CONNECTION_STATE_UNSPECIFIED = 0;
+  // Connection between mobile robot and broker is active.
+  CONNECTION_ONLINE = 1;
+  // Connection has gone offline in a coordinated way.
+  CONNECTION_OFFLINE = 2;
+  // Connection is active, but the mobile robot is not publishing state.
+  // Intended for power-saving or communication reduction.
+  CONNECTION_HIBERNATING = 3;
+  // The connection has unexpectedly ended.
+  CONNECTION_BROKEN = 4;
+}
+
+// Regulates whether an action is allowed during movement / parallel to others.
+enum BlockingType {
+  BLOCKING_TYPE_UNSPECIFIED = 0;
+  // Allows driving and other actions.
+  BLOCKING_NONE = 1;
+  // Allows other actions but not driving.
+  BLOCKING_SOFT = 2;
+  // Allows driving but no other actions.
+  BLOCKING_SINGLE = 3;
+  // The only allowed action at that time.
+  BLOCKING_HARD = 4;
+}
+
+// Current lifecycle state of an action in the state topic.
+enum ActionStatus {
+  ACTION_STATUS_UNSPECIFIED = 0;
+  // Waiting for the trigger (passing the mode, entering the edge).
+  ACTION_WAITING = 1;
+  // Action was triggered, preparatory measures are initiated.
+  ACTION_INITIALIZING = 2;
+  // The action is running.
+  ACTION_RUNNING = 3;
+  // Paused by instantAction or external trigger.
+  ACTION_PAUSED = 4;
+  // Action failed but can be retried.
+  ACTION_RETRIABLE = 5;
+  // The action is finished.
+  ACTION_FINISHED = 6;
+  // The action could not be performed.
+  ACTION_FAILED = 7;
+}
+
+// Current operating mode of the mobile robot.
+enum OperatingMode {
+  OPERATING_MODE_UNSPECIFIED = 0;
+  OPERATING_STARTUP = 1;
+  OPERATING_AUTOMATIC = 2;
+  OPERATING_SEMIAUTOMATIC = 3;
+  OPERATING_INTERVENED = 4;
+  OPERATING_MANUAL = 5;
+  OPERATING_SERVICE = 6;
+  OPERATING_TEACH_IN = 7;
+}
+
+// Severity of an error reported in state.
+enum ErrorLevel {
+  ERROR_LEVEL_UNSPECIFIED = 0;
+  // No immediate attention required. Mobile robot can continue and accept new orders.
+  ERROR_WARNING = 1;
+  // Immediate attention required. Mobile robot can continue and accept new orders.
+  ERROR_URGENT = 2;
+  // Immediate attention required. Mobile robot cannot continue active order
+  // but can accept new order.
+  ERROR_CRITICAL = 3;
+  // User intervention is required. Mobile robot cannot continue active or
+  // accept new order.
+  ERROR_FATAL = 4;
+}
+
+// Severity of an info object reported in state.
+enum InfoLevel {
+  INFO_LEVEL_UNSPECIFIED = 0;
+  // Used for visualization.
+  INFO_INFO = 1;
+  // Used for debugging.
+  INFO_DEBUG = 2;
+}
+
+// E-stop acknowledgement requirement.
+enum EStopType {
+  ESTOP_TYPE_UNSPECIFIED = 0;
+  // E-stop shall be acknowledged manually at the mobile robot.
+  ESTOP_MANUAL = 1;
+  // Facility e-stop shall be acknowledged remotely.
+  ESTOP_REMOTE = 2;
+  // No e-stop activated.
+  ESTOP_NONE = 3;
+}
+
+// Whether a map / zoneSet is currently active on the mobile robot.
+enum MapStatus {
+  MAP_STATUS_UNSPECIFIED = 0;
+  MAP_ENABLED = 1;
+  MAP_DISABLED = 2;
+}
+
+// Orientation interpretation for an edge.
+enum OrientationType {
+  ORIENTATION_TYPE_UNSPECIFIED = 0;
+  // Relative to the global project-specific map coordinate system.
+  ORIENTATION_GLOBAL = 1;
+  // Tangential to the edge (default).
+  ORIENTATION_TANGENTIAL = 2;
+}
+
+// Reference point for corridor widths.
+enum CorridorReferencePoint {
+  CORRIDOR_REFERENCE_POINT_UNSPECIFIED = 0;
+  CORRIDOR_KINEMATIC_CENTER = 1;
+  CORRIDOR_CONTOUR = 2;
+}
+
+// Behaviour when a corridor / zone release is lost.
+enum ReleaseLossBehavior {
+  RELEASE_LOSS_BEHAVIOR_UNSPECIFIED = 0;
+  RELEASE_STOP = 1;
+  // Corridor release-loss: return to the corridor.
+  RELEASE_RETURN = 2;
+  // Zone release-loss: continue with the order.
+  RELEASE_CONTINUE = 3;
+  // Zone release-loss: evacuate the zone.
+  RELEASE_EVACUATE = 4;
+}
+
+// Type of zone.
+enum ZoneType {
+  ZONE_TYPE_UNSPECIFIED = 0;
+  ZONE_BLOCKED = 1;
+  ZONE_LINE_GUIDED = 2;
+  ZONE_RELEASE = 3;
+  ZONE_COORDINATED_REPLANNING = 4;
+  ZONE_SPEED_LIMIT = 5;
+  ZONE_ACTION = 6;
+  ZONE_PRIORITY = 7;
+  ZONE_PENALTY = 8;
+  ZONE_DIRECTED = 9;
+  ZONE_BIDIRECTED = 10;
+}
+
+// Strength of direction enforcement.
+enum DirectedLimitation {
+  DIRECTED_LIMITATION_UNSPECIFIED = 0;
+  // Mobile robots may deviate but should avoid it.
+  DIRECTED_SOFT = 1;
+  // Mobile robots may deviate (e.g., obstacle avoidance) but shall never
+  // traverse opposite to the defined direction.
+  DIRECTED_RESTRICTED = 2;
+  // Mobile robots shall not deviate from the defined direction.
+  DIRECTED_STRICT = 3;
+}
+
+enum BidirectedLimitation {
+  BIDIRECTED_LIMITATION_UNSPECIFIED = 0;
+  BIDIRECTED_SOFT = 1;
+  BIDIRECTED_RESTRICTED = 2;
+}
+
+// Request lifecycle for zone / edge requests.
+enum RequestType {
+  REQUEST_TYPE_UNSPECIFIED = 0;
+  REQUEST_ACCESS = 1;
+  REQUEST_REPLANNING = 2;
+  REQUEST_CORRIDOR = 3;
+}
+
+enum RequestStatus {
+  REQUEST_STATUS_UNSPECIFIED = 0;
+  // Sent by the mobile robot; pending fleet-control decision.
+  REQUEST_REQUESTED = 1;
+  // Fleet control granted the request.
+  REQUEST_GRANTED = 2;
+  // Fleet control revoked the request.
+  REQUEST_REVOKED = 3;
+  // Lease time has expired.
+  REQUEST_EXPIRED = 4;
+}
+
+// Grant / queue / revoke / reject decision from fleet control to mobile robot.
+enum GrantType {
+  GRANT_TYPE_UNSPECIFIED = 0;
+  GRANT_GRANTED = 1;
+  GRANT_QUEUED = 2;
+  GRANT_REVOKED = 3;
+  GRANT_REJECTED = 4;
+}
+
+// Allowed scope for an action type.
+enum ActionScope {
+  ACTION_SCOPE_UNSPECIFIED = 0;
+  SCOPE_INSTANT = 1;
+  SCOPE_NODE = 2;
+  SCOPE_EDGE = 3;
+  SCOPE_ZONE = 4;
+}
+
+// Value data type for factsheet action-parameter metadata.
+enum ValueDataType {
+  VALUE_DATA_TYPE_UNSPECIFIED = 0;
+  VALUE_BOOL = 1;
+  VALUE_NUMBER = 2;
+  VALUE_INTEGER = 3;
+  VALUE_STRING = 4;
+  VALUE_OBJECT = 5;
+  VALUE_ARRAY = 6;
+}
+
+// Support level for an optional parameter listed in the factsheet.
+enum OptionalParameterSupport {
+  OPTIONAL_PARAMETER_SUPPORT_UNSPECIFIED = 0;
+  OPTIONAL_SUPPORTED = 1;
+  OPTIONAL_REQUIRED = 2;
+}
+
+// Type of an action — extensible enum. Predefined values follow.
+enum ActionType {
+  // Not used; the VDA 5050 action type is the actionType string in
+  // the Action.message. This enum is reserved for future typed extension.
+  ACTION_TYPE_UNSPECIFIED = 0;
+}
+
+// ---------------------------------------------------------------------------
+// Shared geometric types
+// ---------------------------------------------------------------------------
+
+// 2D vertex in the project-specific coordinate system.
+message Vertex2D {
+  // X-coordinate [m].
+  double x = 1;
+  // Y-coordinate [m].
+  double y = 2;
+}
+
+// Allowed deviation ellipse for a node position (in the node's local frame).
+message NodePositionDeviation {
+  // Length of the ellipse semi-major axis [m].
+  double a = 1;
+  // Length of the ellipse semi-minor axis [m].
+  double b = 2;
+  // Rotation angle of the ellipse [rad].
+  double theta = 3;
+}
+
+// Position on a map in the global project-specific world coordinate system.
+message NodePosition {
+  // X-position on the map [m].
+  double x = 1;
+  // Y-position on the map [m].
+  double y = 2;
+  // Absolute orientation of the mobile robot on the node [rad].
+  // Range: -PI .. PI. Optional — the mobile robot may plan the path itself.
+  optional double theta = 3;
+
+  // Allowed XY deviation ellipse. Optional.
+  NodePositionDeviation allowed_deviation_xy = 4;
+
+  // Allowed deviation of the theta angle [rad]. Optional.
+  // Range: 0 .. PI.
+  optional double allowed_deviation_theta = 5;
+
+  // Unique identification of the map in which the position is referenced.
+  string map_id = 6;
+}
+
+// Bounding-box reference point (center of the bottom surface) in the
+// mobile robot's coordinate system.
+message BoundingBoxReference {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  // Orientation of the load's bounding box. Important for tugger trains, etc.
+  optional double theta = 4;
+}
+
+// Dimensions of a load's bounding box.
+message BoundingBox {
+  // Length along the mobile robot's x-axis [m].
+  double length = 1;
+  // Width along the mobile robot's y-axis [m].
+  double width = 2;
+  // Height [m]. Optional.
+  optional double height = 3;
+}
+
+// Control point of a NURBS trajectory.
+message ControlPoint {
+  // X coordinate described in the world coordinate system [m].
+  double x = 1;
+  // Y coordinate described in the world coordinate system [m].
+  double y = 2;
+  // Weight with which this control point pulls on the curve.
+  // Default: 1.0.
+  optional double weight = 3;
+}
+
+// NURBS trajectory.
+message Trajectory {
+  // Degree of the NURBS. Default: 1.
+  optional uint32 degree = 1;
+
+  // Sequence of parameter values that determine where and how the control
+  // points affect the NURBS curve. Range: 0.0 .. 1.0.
+  // Size = number of control points + degree + 1.
+  repeated double knot_vector = 2;
+
+  // List of control points defining the NURBS, including the beginning and
+  // end point.
+  repeated ControlPoint control_points = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Action types
+// ---------------------------------------------------------------------------
+
+// Key/value parameter for an action. The value uses google.protobuf.Value so
+// it may be a bool, number, integer, string, array, or object — matching the
+// JSON schema's "value" type union.
+message ActionParameter {
+  // Key of the action parameter (e.g., "duration", "direction", "signal").
+  string key = 1;
+  // Value of the action parameter.
+  google.protobuf.Value value = 2;
+}
+
+// An action the mobile robot can perform. Used by order (nodes, edges),
+// instantActions, and zoneSet (zoneAction).
+message Action {
+  // Name of the action. Identifies the function of the action.
+  string action_type = 1;
+
+  // Unique ID to identify the action and map it to actionState. Suggestion: UUID.
+  string action_id = 2;
+
+  // Additional information on the action.
+  string action_descriptor = 3;
+
+  // Blocking type of the action.
+  BlockingType blocking_type = 4;
+
+  // Action parameters (e.g., deviceId, loadId, external triggers).
+  repeated ActionParameter action_parameters = 5;
+
+  // True: action can enter RETRIABLE state if it fails.
+  // False: action enters FAILED state directly. Default: false.
+  // (Used by order and zone actions, not by instantActions.)
+  optional bool retriable = 6;
+}
+
+// State of an action.
+message ActionState {
+  // Unique actionId.
+  string action_id = 1;
+
+  // actionType of the action. Optional — for informational/visualization only.
+  string action_type = 2;
+
+  // A user-defined, human-readable name or descriptor.
+  string action_descriptor = 3;
+
+  // Current status of the action.
+  ActionStatus action_status = 4;
+
+  // Description of the result (e.g., the result of an RFID-read).
+  // Errors are reported in the state.errors array.
+  string action_result = 5;
+}
+
+// ---------------------------------------------------------------------------
+// Misc shared types
+// ---------------------------------------------------------------------------
+
+// Translation of a text for a given language code (ISO 639-1).
+message Translation {
+  // ISO 639-1 language code.
+  string translation_key = 1;
+  // Translation in the language of the key.
+  string translation_value = 2;
+}
+
+// Key/value reference (e.g., for error / info references).
+message Reference {
+  // Type of reference (e.g., nodeId, edgeId, orderId, actionId).
+  string reference_key = 1;
+  // Value belonging to the reference key.
+  string reference_value = 2;
+}
+
+// Battery-related information.
+message PowerSupply {
+  // State of Charge in percent. Range: 0 .. 100.
+  float state_of_charge = 1;
+
+  // Battery voltage [V].
+  optional double battery_voltage = 2;
+
+  // Battery current [A].
+  optional double battery_current = 3;
+
+  // State of health in percent. Range: 0 .. 100.
+  optional float battery_health = 4;
+
+  // True: charging in progress. False: not charging.
+  bool charging = 5;
+
+  // Estimated reach with current State of Charge [m].
+  optional double range = 6;
+}
+
+// Safety-related information.
+message SafetyState {
+  // Currently active e-stop type.
+  EStopType active_emergency_stop = 1;
+
+  // Protective field violation. True: violated. False: not violated.
+  bool field_violation = 2;
+}

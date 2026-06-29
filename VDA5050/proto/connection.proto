@@ -1,0 +1,23 @@
+// VDA 5050 v3.0.0 — Connection message
+// Subtopic: /connection
+//
+// Last-will message of the mobile robot. Sent with the retain flag.
+// On (re)connect, the mobile robot publishes a Connection with
+// connection_state = CONNECTION_ONLINE. The MQTT last-will is configured
+// with connection_state = CONNECTION_BROKEN. For a coordinated shutdown
+// the mobile robot publishes connection_state = CONNECTION_OFFLINE.
+
+syntax = "proto3";
+
+package vda5050.v3;
+
+import "common.proto";
+
+// Connection message.
+message Connection {
+  // Standard message header.
+  Header header = 1;
+
+  // State of the connection.
+  ConnectionState connection_state = 2;
+}

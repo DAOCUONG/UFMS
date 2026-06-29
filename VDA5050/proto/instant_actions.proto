@@ -1,0 +1,21 @@
+// VDA 5050 v3.0.0 — Instant Actions message
+// Subtopic: /instantActions
+//
+// Instant actions the mobile robot is to execute as soon as they arrive.
+// The blocking_type of an instant action is always NONE — it can happen
+// in parallel with other actions, including movement.
+
+syntax = "proto3";
+
+package vda5050.v3;
+
+import "common.proto";
+
+// Instant actions message.
+message InstantActions {
+  // Standard message header.
+  Header header = 1;
+
+  // List of actions to be executed.
+  repeated Action actions = 2;
+}

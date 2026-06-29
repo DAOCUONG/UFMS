@@ -1,0 +1,116 @@
+// VDA 5050 v3.0.0 — Zone Set message
+// Subtopic: /zoneSet
+//
+// Zone set detailing a dedicated map. The Zone message supports several
+// zone types. Fields that are conditional on the zone type are marked
+// "optional" and documented inline; validation must enforce the JSON
+// schema's "if/then" rules (e.g., SPEED_LIMIT requires maximum_speed).
+
+syntax = "proto3";
+
+package vda5050.v3;
+
+import "common.proto";
+
+// Top-level zoneSet message.
+message ZoneSet {
+  // Standard message header.
+  Header header = 1;
+
+  // The zone set payload.
+  ZoneSetData zone_set = 2;
+}
+
+// A zone set describing a map.
+message ZoneSetData {
+  // Globally unique identifier of the map the zone set particularizes.
+  string map_id = 1;
+
+  // Globally unique identifier of the zone set.
+  string zone_set_id = 2;
+
+  // A user-defined, human-readable name or descriptor.
+  string zone_set_descriptor = 3;
+
+  // Array of zone objects. At least three vertices per zone.
+  repeated Zone zones = 4;
+}
+
+// A zone within a zone set. The optional fields below are required for
+// the corresponding zone type:
+//
+//   zone_type                    | required fields
+//   -----------------------------+----------------------------------------
+//   ZONE_RELEASE                 | release_loss_behavior
+//   ZONE_SPEED_LIMIT             | maximum_speed
+//   ZONE_ACTION                  | entry_actions, during_actions, exit_actions
+//   ZONE_PRIORITY                | priority_factor
+//   ZONE_PENALTY                 | penalty_factor
+//   ZONE_DIRECTED                | direction, directed_limitation
+//   ZONE_BIDIRECTED              | direction, bidirected_limitation
+message Zone {
+  // Locally (within the zone set) unique identifier.
+  string zone_id = 1;
+
+  // Zone category.
+  ZoneType zone_type = 2;
+
+  // User-defined, human-readable name or descriptor.
+  string zone_descriptor = 3;
+
+  // Array of vertices (in x-y-coordinates) defining the geometrical shape
+  // of the zone. At least 3 vertices.
+  repeated Vertex2D vertices = 4;
+
+  // --- Conditional fields ---
+
+  // Required when zone_type == ZONE_RELEASE. Behaviour in case the release
+  // expires or gets revoked.
+  optional ReleaseLossBehavior release_loss_behavior = 10;
+
+  // Required when zone_type == ZONE_SPEED_LIMIT. Maximum allowed speed [m/s].
+  optional double maximum_speed = 11;
+
+  // Required when zone_type == ZONE_ACTION. Actions to execute on entry.
+  repeated ZoneAction entry_actions = 12;
+  // Required when zone_type == ZONE_ACTION. Actions to execute while crossing.
+  repeated ZoneAction during_actions = 13;
+  // Required when zone_type == ZONE_ACTION. Actions to execute on exit.
+  repeated ZoneAction exit_actions = 14;
+
+  // Required when zone_type == ZONE_PRIORITY. Range: 0.0 .. 1.0.
+  optional double priority_factor = 15;
+
+  // Required when zone_type == ZONE_PENALTY. Range: 0.0 .. 1.0.
+  optional double penalty_factor = 16;
+
+  // Required when zone_type == ZONE_DIRECTED. Preferred direction [rad].
+  optional double direction = 17;
+  // Required when zone_type == ZONE_DIRECTED.
+  optional DirectedLimitation directed_limitation = 18;
+
+  // Required when zone_type == ZONE_BIDIRECTED. Direction and its opposite
+  // direction (+ PI) define the allowed directions of travel [rad].
+  optional double bidirected_direction = 19;
+  // Required when zone_type == ZONE_BIDIRECTED.
+  optional BidirectedLimitation bidirected_limitation = 20;
+}
+
+// A zone-triggered action. Same shape as Action but without action_id
+// (zone actions are identified by their position in the zone action list).
+message ZoneAction {
+  // Name of the action. Identifies the function of the action.
+  string action_type = 1;
+
+  // Additional information on the action.
+  string action_descriptor = 2;
+
+  // Blocking type of the action.
+  BlockingType blocking_type = 3;
+
+  // Action parameters (e.g., deviceId, loadId, external triggers).
+  repeated ActionParameter action_parameters = 4;
+
+  // True: action can enter RETRIABLE state if it fails. Default: false.
+  optional bool retriable = 5;
+}

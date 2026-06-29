@@ -1,0 +1,34 @@
+// VDA 5050 v3.0.0 — Responses message
+// Subtopic: /responses
+//
+// Responses from fleet control to mobile-robot requests (zone or edge
+// requests originated from the mobile robot).
+
+syntax = "proto3";
+
+package vda5050.v3;
+
+import "common.proto";
+import "google/protobuf/timestamp.proto";
+
+// Responses message.
+message Responses {
+  // Standard message header.
+  Header header = 1;
+
+  // Array of response objects.
+  repeated Response responses = 2;
+}
+
+// A single response.
+message Response {
+  // Unique per mobile robot identifier within all active requests.
+  string request_id = 1;
+
+  // Grant / queue / revoke / reject decision.
+  GrantType grant_type = 2;
+
+  // Timestamp (ISO 8601, UTC); YYYY-MM-DDTHH:mm:ss.fffZ.
+  // E.g., "2017-04-15T11:40:03.123Z". Optional.
+  google.protobuf.Timestamp lease_expiry = 3;
+}

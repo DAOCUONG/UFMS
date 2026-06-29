@@ -1,0 +1,145 @@
+// VDA 5050 v3.0.0 — Order message
+// Subtopic: /order
+//
+// Order message from fleet control to the mobile robot. Identified by
+// order_id; subsequent updates with the same order_id are tracked by
+// monotonically increasing order_update_id (starting at 0 for a new order).
+
+syntax = "proto3";
+
+package vda5050.v3;
+
+import "common.proto";
+
+// Order message.
+message Order {
+  // Standard message header.
+  Header header = 1;
+
+  // Order identification. Identifies multiple order messages that belong
+  // to the same order.
+  string order_id = 2;
+
+  // Order update identification. Unique per order_id, starting at 0 for a
+  // new order. If an order update is rejected, this field shall be passed
+  // back in the rejection message.
+  uint32 order_update_id = 3;
+
+  // Additional human-readable information only for visualization; shall
+  // not be used for any logical processes.
+  string order_description = 4;
+
+  // Array of node objects to be traversed for fulfilling the order.
+  // One node is enough for a valid order (leave edges empty in that case).
+  repeated Node nodes = 5;
+
+  // Array of edge objects to be traversed for fulfilling the order.
+  // One node is enough for a valid order (leave this empty in that case).
+  repeated Edge edges = 6;
+}
+
+// A node of an order.
+message Node {
+  // Identifier of the node. May not be unique among the nodes of the same order.
+  string node_id = 1;
+
+  // Number to track the sequence of nodes and edges in an order and to
+  // simplify order updates. Shared between nodes and edges and defines the
+  // sequence of traversal. May not be unique per order_id.
+  uint32 sequence_id = 2;
+
+  // Additional information on the node.
+  string node_descriptor = 3;
+
+  // True: node is part of the base. False: node is part of the horizon.
+  bool released = 4;
+
+  // Position on a map. Optional for mobile robot-types that do not require
+  // node positions (e.g., line-guided mobile robots).
+  NodePosition node_position = 5;
+
+  // Actions to be executed on a node. Empty if no actions required.
+  repeated Action actions = 6;
+}
+
+// An edge of an order — directional connection between two nodes.
+message Edge {
+  // Identifier of the edge. May not be unique among the edges of the same order.
+  string edge_id = 1;
+
+  // Sequence ID — see Node.sequence_id. Shared with nodes and defines the
+  // sequence of traversal.
+  uint32 sequence_id = 2;
+
+  // Additional information on the edge.
+  string edge_descriptor = 3;
+
+  // True: edge is part of the base. False: edge is part of the horizon.
+  bool released = 4;
+
+  // Permitted maximum speed on the edge [m/s]. Optional.
+  optional double maximum_speed = 5;
+
+  // Permitted maximum height of the mobile robot, including the load, on
+  // the edge [m]. Optional.
+  optional double maximum_mobile_robot_height = 6;
+
+  // Permitted minimal height of the load handling device on the edge [m].
+  // Optional.
+  optional double minimum_load_handling_device_height = 7;
+
+  // Orientation of the mobile robot on the edge [rad]. Range: -PI .. PI.
+  // See the VDA 5050 document for the interpretation of orientation_type.
+  optional double orientation = 8;
+
+  // How to interpret the orientation field. Default: TANGENTIAL.
+  OrientationType orientation_type = 9;
+
+  // Sets direction at junctions for line-guided / wire-guided mobile robots.
+  // Mobile robot-individual.
+  string direction = 10;
+
+  // True: desired edge orientation shall be reached before entering the edge.
+  // False: mobile robot can rotate into the desired orientation on the edge.
+  // Default: false.
+  optional bool reach_orientation_before_entering = 11;
+
+  // Maximum rotation speed [rad/s]. Optional — no limit if unset.
+  optional double max_rotation_speed = 12;
+
+  // Trajectory for this edge as a NURBS. Optional — the mobile robot can
+  // plan its own trajectory.
+  Trajectory trajectory = 13;
+
+  // Distance of the path from the start node to the end node [m]. Optional —
+  // used by line-guided mobile robots to decrease speed before reaching a
+  // stop position.
+  optional double length = 14;
+
+  // Corridor in which the mobile robot may deviate from the trajectory.
+  Corridor corridor = 15;
+
+  // Actions to be executed on the edge.
+  repeated Action actions = 16;
+}
+
+// Definition of boundaries in which a mobile robot can deviate from its
+// trajectory (e.g., to avoid obstacles).
+message Corridor {
+  // Width of the corridor to the left of the trajectory [m].
+  double left_width = 1;
+  // Width of the corridor to the right of the trajectory [m].
+  double right_width = 2;
+
+  // Whether the boundaries are valid for the kinematic center or the
+  // contour of the mobile robot.
+  CorridorReferencePoint corridor_reference_point = 3;
+
+  // True: the mobile robot must request approval from fleet control.
+  // Default: false (no release required).
+  optional bool release_required = 4;
+
+  // Behaviour in case the corridor release expires or gets revoked.
+  // Default: STOP.
+  ReleaseLossBehavior release_loss_behavior = 5;
+}

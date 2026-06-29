@@ -1,0 +1,392 @@
+// VDA 5050 v3.0.0 — Factsheet message
+// Subtopic: /factsheet
+//
+// Basic information about a specific mobile robot type series. Allows
+// comparison of different mobile robot types and can be used for
+// planning, dimensioning and simulation of a mobile robot system. Also
+// includes information about mobile robot communication interfaces
+// required for the integration of a mobile robot type series into a
+// VDA 5050-compliant fleet control.
+
+syntax = "proto3";
+
+package vda5050.v3;
+
+import "common.proto";
+import "google/protobuf/struct.proto";
+
+// ---------------------------------------------------------------------------
+// Top-level factsheet message
+// ---------------------------------------------------------------------------
+
+message Factsheet {
+  // Standard message header.
+  Header header = 1;
+
+  // Class and capabilities of the mobile robot.
+  TypeSpecification type_specification = 2;
+
+  // Basic physical properties of the mobile robot.
+  PhysicalParameters physical_parameters = 3;
+
+  // Protocol limitations of the mobile robot.
+  ProtocolLimits protocol_limits = 4;
+
+  // Supported features of the VDA 5050 protocol.
+  ProtocolFeatures protocol_features = 5;
+
+  // Detailed definition of mobile robot geometry.
+  MobileRobotGeometry mobile_robot_geometry = 6;
+
+  // Abstract specification of load capabilities.
+  LoadSpecification load_specification = 7;
+
+  // Static configuration of the mobile robot.
+  MobileRobotConfiguration mobile_robot_configuration = 8;
+}
+
+// ---------------------------------------------------------------------------
+// TypeSpecification
+// ---------------------------------------------------------------------------
+
+message TypeSpecification {
+  // Free-text generalized series name as specified by the manufacturer.
+  string series_name = 1;
+
+  // Free-text human-readable description of the mobile robot type series.
+  string series_description = 2;
+
+  // Simplified description of the mobile robot's kinematics type.
+  // Extensible enum: DIFFERENTIAL, OMNIDIRECTIONAL, THREE_WHEEL.
+  string mobile_robot_kinematics = 3;
+
+  // Simplified description of the mobile robot class.
+  // Extensible enum: FORKLIFT, CONVEYOR, TUGGER, CARRIER.
+  string mobile_robot_class = 4;
+
+  // Maximum loadable mass [kg]. Range: >= 0.
+  double maximum_load_mass = 5;
+
+  // Simplified description of localization types.
+  // Extensible enum entries: NATURAL, REFLECTOR, RFID, DMC, SPOT, GRID.
+  repeated string localization_types = 6;
+
+  // List of path-planning types supported by the mobile robot, sorted by
+  // priority. Extensible enum: PHYSICAL_LINE_GUIDED, VIRTUAL_LINE_GUIDED,
+  // FREELY_NAVIGATING.
+  repeated string navigation_types = 7;
+
+  // Array of zone types supported by the mobile robot.
+  repeated ZoneType supported_zones = 8;
+}
+
+// ---------------------------------------------------------------------------
+// PhysicalParameters
+// ---------------------------------------------------------------------------
+
+message PhysicalParameters {
+  // Minimal controlled continuous speed [m/s]. Range: >= 0.
+  double minimum_speed = 1;
+  // Maximum speed [m/s]. Range: >= 0.
+  double maximum_speed = 2;
+  // Minimal controlled continuous rotation speed [rad/s]. Range: >= 0.
+  optional double minimum_angular_speed = 3;
+  // Maximum rotation speed [rad/s]. Range: >= 0.
+  optional double maximum_angular_speed = 4;
+  // Maximum acceleration with maximum load [m/s^2]. Range: >= 0.
+  double maximum_acceleration = 5;
+  // Maximum deceleration with maximum load [m/s^2].
+  double maximum_deceleration = 6;
+  // Minimum height of the mobile robot [m].
+  double minimum_height = 7;
+  // Maximum height of the mobile robot [m].
+  double maximum_height = 8;
+  // Width of the mobile robot [m].
+  double width = 9;
+  // Length of the mobile robot [m].
+  double length = 10;
+}
+
+// ---------------------------------------------------------------------------
+// ProtocolLimits
+// ---------------------------------------------------------------------------
+
+message ProtocolLimits {
+  // Maximum lengths of strings.
+  MaximumStringLengths maximum_string_lengths = 1;
+  // Maximum lengths of arrays. 0 or unset means no explicit limit.
+  MaximumArrayLengths maximum_array_lengths = 2;
+  // Timing information.
+  Timing timing = 3;
+}
+
+message MaximumStringLengths {
+  // Maximum MQTT message length.
+  optional uint32 maximum_message_length = 1;
+  // Maximum length of serial-number part in MQTT topics.
+  optional uint32 maximum_topic_serial_length = 2;
+  // Maximum length of all other parts in MQTT topics.
+  optional uint32 maximum_topic_element_length = 3;
+  // Maximum length of ID strings (order.orderId, node.nodeId, etc.).
+  optional uint32 maximum_id_length = 4;
+  // True: ID strings must contain numerical values only.
+  optional bool id_numerical_only = 5;
+  // Maximum length of loadId strings.
+  optional uint32 maximum_load_id_length = 6;
+}
+
+message MaximumArrayLengths {
+  optional uint32 order_nodes = 1;
+  optional uint32 order_edges = 2;
+  optional uint32 node_actions = 3;
+  optional uint32 edge_actions = 4;
+  optional uint32 actions_action_parameters = 5;
+  optional uint32 instant_actions = 6;
+  optional uint32 trajectory_knot_vector = 7;
+  optional uint32 trajectory_control_points = 8;
+  optional uint32 zone_set_zones = 9;
+  optional uint32 state_node_states = 10;
+  optional uint32 state_edge_states = 11;
+  optional uint32 state_loads = 12;
+  optional uint32 state_action_states = 13;
+  optional uint32 state_instant_action_states = 14;
+  optional uint32 state_zone_action_states = 15;
+  optional uint32 state_errors = 16;
+  optional uint32 state_information = 17;
+  optional uint32 error_error_references = 18;
+  optional uint32 information_info_references = 19;
+}
+
+message Timing {
+  // Minimum interval for sending order messages to the mobile robot [s].
+  double minimum_order_interval = 1;
+  // Minimum interval for sending state messages [s].
+  double minimum_state_interval = 2;
+  // Default interval for sending state messages [s]. Optional.
+  optional double default_state_interval = 3;
+  // Default interval for sending visualization messages [s]. Optional.
+  optional double visualization_interval = 4;
+}
+
+// ---------------------------------------------------------------------------
+// ProtocolFeatures
+// ---------------------------------------------------------------------------
+
+message ProtocolFeatures {
+  // List of supported and/or required optional parameters. Optional
+  // parameters not listed are assumed to be not supported.
+  repeated OptionalParameter optional_parameters = 1;
+
+  // List of all actions with parameters supported by this mobile robot,
+  // including standard VDA 5050 actions and manufacturer-specific ones.
+  repeated MobileRobotAction mobile_robot_actions = 2;
+}
+
+message OptionalParameter {
+  // Full name of optional parameter, e.g.,
+  // "order.nodes.nodePosition.allowedDeviationTheta".
+  string parameter = 1;
+  // Support level for the optional parameter.
+  OptionalParameterSupport support = 2;
+  // Free-text description of the optional parameter.
+  string description = 3;
+}
+
+message MobileRobotAction {
+  // Unique actionType corresponding to Action.actionType.
+  string action_type = 1;
+  // Free-text description of the action.
+  string action_description = 2;
+  // List of allowed scopes for this action type.
+  repeated ActionScope action_scopes = 3;
+  // List of parameters. Empty if the action has no parameters.
+  repeated ActionParameterDescription action_parameters = 4;
+  // Free-text description of the action result.
+  string action_result = 5;
+  // Possible blocking types for this action.
+  repeated BlockingType blocking_types = 6;
+  // True: action can be paused via startPause.
+  bool pause_allowed = 7;
+  // True: action can be cancelled via cancelOrder.
+  bool cancel_allowed = 8;
+}
+
+message ActionParameterDescription {
+  // Key string for the parameter.
+  string key = 1;
+  // Data type of the value.
+  ValueDataType value_data_type = 2;
+  // Free-text description of the parameter.
+  string description = 3;
+  // True: optional parameter.
+  optional bool is_optional = 4;
+}
+
+// ---------------------------------------------------------------------------
+// MobileRobotGeometry
+// ---------------------------------------------------------------------------
+
+message MobileRobotGeometry {
+  // List of wheels, including wheel arrangement and geometry.
+  repeated WheelDefinition wheel_definitions = 1;
+  // 2D envelope curves (polygons) of the mobile robot.
+  repeated Envelope2D envelopes2d = 2;
+  // 3D envelope curves of the mobile robot.
+  repeated Envelope3D envelopes3d = 3;
+}
+
+message WheelDefinition {
+  // Wheel type. Extensible enum: DRIVE, CASTER, FIXED, MECANUM.
+  string type = 1;
+  // True: wheel is actively driven.
+  bool is_active_driven = 2;
+  // True: wheel is actively steered.
+  bool is_active_steered = 3;
+  // Wheel position in the mobile robot coordinate system.
+  WheelPosition position = 4;
+  // Nominal diameter of the wheel [m].
+  double diameter = 5;
+  // Nominal width of the wheel [m].
+  double width = 6;
+  // Nominal displacement of the wheel's center to the rotation point
+  // (for caster wheels). Default: 0.
+  optional double center_displacement = 7;
+  // Free text: constraints defined by the manufacturer.
+  string constraints = 8;
+}
+
+message WheelPosition {
+  // X-position in the mobile robot coordinate system [m].
+  double x = 1;
+  // Y-position in the mobile robot coordinate system [m].
+  double y = 2;
+  // Orientation of the wheel in the mobile robot coordinate system [rad].
+  // Necessary for fixed wheels.
+  optional double theta = 3;
+}
+
+message Envelope2D {
+  // Identifier of the envelope curve set.
+  string envelope2d_id = 1;
+  // Vertices of the closed polygon defining the envelope curve.
+  // Only simple polygons shall be used.
+  repeated Vertex2D vertices = 2;
+  // Free-text description of the envelope curve set.
+  string description = 3;
+}
+
+message Envelope3D {
+  // Identifier of the envelope curve set.
+  string envelope3d_id = 1;
+  // Format of data (e.g., "DXF").
+  string format = 2;
+  // 3D-envelope curve data in the format specified above. Optional —
+  // omit if a URL is provided.
+  google.protobuf.Struct data = 3;
+  // Protocol + URL for downloading the 3D envelope data (e.g.,
+  // "ftp://xxx.yyy.com/ac4dgvhoif5tghji"). Optional.
+  string url = 4;
+  // Free-text description of the envelope curve set.
+  string description = 5;
+}
+
+// ---------------------------------------------------------------------------
+// LoadSpecification
+// ---------------------------------------------------------------------------
+
+message LoadSpecification {
+  // List of load positions / load handling devices. Lists the valid values
+  // for state.loads[].load_position and the "lhd" action parameter of pick
+  // and drop. If empty, the mobile robot has no load handling device.
+  repeated string load_positions = 1;
+  // List of load sets that can be handled by the mobile robot.
+  repeated LoadSet load_sets = 2;
+}
+
+message LoadSet {
+  // Unique name of the load set (e.g., DEFAULT, SET1).
+  string set_name = 1;
+  // Type of load (e.g., EPAL, XLT1200).
+  string load_type = 2;
+  // List of load positions this load set is valid for. Empty means the
+  // load set is valid for all load handling devices.
+  repeated string load_positions = 3;
+  // Bounding-box reference — same definition as in state.loads[].
+  BoundingBoxReference bounding_box_reference = 4;
+  // Load dimensions.
+  BoundingBox load_dimensions = 5;
+  // Maximum weight of this load type [kg]. Range: >= 0.
+  optional double maximum_weight = 6;
+  // Minimum allowed height for handling of this load [m]. Range: >= 0.
+  optional double minimum_load_handling_height = 7;
+  // Maximum allowed height for handling of this load [m]. Range: >= 0.
+  optional double maximum_load_handling_height = 8;
+  // Minimum allowed depth for this load [m].
+  optional double minimum_load_handling_depth = 9;
+  // Maximum allowed depth for this load [m].
+  optional double maximum_load_handling_depth = 10;
+  // Minimum allowed tilt for this load [rad].
+  optional double minimum_load_handling_tilt = 11;
+  // Maximum allowed tilt for this load [rad].
+  optional double maximum_load_handling_tilt = 12;
+  // Maximum allowed speed for this load [m/s]. Range: >= 0.
+  optional double maximum_speed = 13;
+  // Maximum allowed acceleration for this load [m/s^2]. Range: >= 0.
+  optional double maximum_acceleration = 14;
+  // Maximum allowed deceleration for this load [m/s^2].
+  optional double maximum_deceleration = 15;
+  // Approximate time for picking up the load [s]. Range: >= 0.
+  optional double pick_time = 16;
+  // Approximate time for dropping the load [s]. Range: >= 0.
+  optional double drop_time = 17;
+  // Free-text description of the load handling set.
+  string description = 18;
+}
+
+// ---------------------------------------------------------------------------
+// MobileRobotConfiguration
+// ---------------------------------------------------------------------------
+
+message MobileRobotConfiguration {
+  // Various hardware and software versions running on the mobile robot.
+  repeated Version versions = 1;
+  // Network connection information (a priori; not updated during operation).
+  Network network = 2;
+  // Battery charging parameters.
+  BatteryCharging battery_charging = 3;
+}
+
+message Version {
+  // Key of the version (e.g., "softwareVersion", "cameraVersion",
+  // "plcSoftChecksum").
+  string key = 1;
+  // Value of the version (e.g., "v1.03.2", "0620NL51805A0", "0x4297F30C").
+  string value = 2;
+}
+
+message Network {
+  // List of DNS servers used by the mobile robot.
+  repeated string dns_servers = 1;
+  // List of NTP servers used by the mobile robot.
+  repeated string ntp_servers = 2;
+  // A priori assigned IP address of the mobile robot used to communicate
+  // with the MQTT broker.
+  string local_ip_address = 3;
+  // Network subnet mask.
+  string netmask = 4;
+  // Default gateway used by the mobile robot.
+  string default_gateway = 5;
+}
+
+message BatteryCharging {
+  // Critical charging level in percent at or below which the fleet control
+  // should only send orders that command the mobile robot to a charging
+  // station. Range: 0.0 .. 100.0.
+  optional double critical_low_charging_level = 1;
+  // Minimum desired charging level in percent. Range: 0.0 .. 100.0.
+  optional double minimum_desired_charging_level = 2;
+  // Maximum desired charging level in percent. Range: 0.0 .. 100.0.
+  optional double maximum_desired_charging_level = 3;
+  // Desired minimum charging time [s]. Range: >= 0.
+  optional double minimum_charging_time = 4;
+}

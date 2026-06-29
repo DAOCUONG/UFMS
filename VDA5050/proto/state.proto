@@ -1,0 +1,336 @@
+// VDA 5050 v3.0.0 — State message
+// Subtopic: /state
+//
+// State of the mobile robot, including the current order, position,
+// velocity, loads, action states, errors, and safety information.
+
+syntax = "proto3";
+
+package vda5050.v3;
+
+import "common.proto";
+import "google/protobuf/timestamp.proto";
+
+// State message.
+message State {
+  // Standard message header.
+  Header header = 1;
+
+  // Array of map objects currently stored on the mobile robot.
+  repeated Map maps = 2;
+
+  // Array of zoneSet objects currently stored on the mobile robot.
+  // Each entry references a zoneSet that is available for a given map.
+  repeated ZoneSetReference zone_sets = 3;
+
+  // Unique order identification of the current order, or the previous
+  // finished order. The order_id is kept until a new order is received.
+  // Empty string if no previous order_id is available.
+  string order_id = 4;
+
+  // Order update identification to identify that an order update has been
+  // accepted by the mobile robot. 0 if no previous order_update_id is
+  // available.
+  uint32 order_update_id = 5;
+
+  // Node ID of the last reached node or, if currently on a node, the
+  // current node. Empty string if no last_node_id is available.
+  string last_node_id = 6;
+
+  // sequenceId of the last reached node or, if currently on a node, the
+  // sequenceId of the current node. 0 if no last_node_sequence_id is
+  // available.
+  uint32 last_node_sequence_id = 7;
+
+  // Array of nodeState objects to be traversed for fulfilling the order.
+  // Empty list if idle.
+  repeated NodeState node_states = 8;
+
+  // Array of edgeState objects to be traversed for fulfilling the order.
+  // Empty list if idle.
+  repeated EdgeState edge_states = 9;
+
+  // Path within the currently active order (NURBS). Optional.
+  PlannedPath planned_path = 10;
+
+  // Estimated time of arrival at closer waypoints (polyline). Optional.
+  IntermediatePath intermediate_path = 11;
+
+  // Mobile robot position. Optional — e.g., line-guided vehicles may omit.
+  MobileRobotPosition mobile_robot_position = 12;
+
+  // Mobile robot velocity in mobile robot coordinates.
+  Velocity velocity = 13;
+
+  // Loads currently handled by the mobile robot. Optional — if the mobile
+  // robot cannot determine load state, leave it unset. Empty list means
+  // the mobile robot is unloaded.
+  repeated Load loads = 14;
+
+  // True: the mobile robot is driving and/or rotating. False: neither.
+  bool driving = 15;
+
+  // True: the mobile robot is in a paused state. False: not paused.
+  bool paused = 16;
+
+  // True: the mobile robot is almost at the end of the base and will
+  // reduce speed if no new base is transmitted. False: no base update
+  // required.
+  bool new_base_request = 17;
+
+  // Active zone requests. Empty array if no zone requests are active.
+  repeated ZoneRequest zone_requests = 18;
+
+  // Active edge requests. Empty array if no edge requests are active.
+  repeated EdgeRequest edge_requests = 19;
+
+  // Distance driven past the last_node_id [m]. Used by line-guided vehicles.
+  optional double distance_since_last_node = 20;
+
+  // Current and not-yet-finished actions, including actions from previous
+  // nodes that are still in progress. Kept until a new order is received.
+  repeated ActionState action_states = 21;
+
+  // All instant action states received. Empty if none received. Kept until
+  // restart or the "clearInstantActions" action is executed.
+  repeated ActionState instant_action_states = 22;
+
+  // All zone actions that are in an end state or currently running; sharing
+  // upcoming actions is optional. Kept until restart or the
+  // "clearZoneActions" action is executed.
+  repeated ActionState zone_action_states = 23;
+
+  // Battery-related information.
+  PowerSupply power_supply = 24;
+
+  // Current operating mode of the mobile robot.
+  OperatingMode operating_mode = 25;
+
+  // Active errors. Empty array means no active errors.
+  repeated Error errors = 26;
+
+  // Information entries. Empty array means no information. Use only for
+  // visualization/debugging, not for fleet-control logic.
+  repeated Info information = 27;
+
+  // Safety-related information.
+  SafetyState safety_state = 28;
+}
+
+// ---------------------------------------------------------------------------
+// State sub-types
+// ---------------------------------------------------------------------------
+
+// A map stored on the mobile robot.
+message Map {
+  // ID of the map describing a defined area of the mobile robot's workspace.
+  string map_id = 1;
+
+  // Version of the map.
+  string map_version = 2;
+
+  // A user-defined, human-readable name or descriptor.
+  string map_descriptor = 3;
+
+  // Whether the map is currently active.
+  MapStatus map_status = 4;
+}
+
+// Reference to a zone set that is stored on the mobile robot.
+// (This is the "zoneSet" definition inside state.schema — it is a slim
+// reference, not the full zoneSet topic message.)
+message ZoneSetReference {
+  // Unique identifier of the zone set. Empty if the mobile robot has no
+  // zones defined for the corresponding map.
+  string zone_set_id = 1;
+
+  // Identifier of the corresponding map.
+  string map_id = 2;
+
+  // Whether the zone set is currently active.
+  MapStatus zone_set_status = 3;
+}
+
+// State of a node in the order.
+message NodeState {
+  // Unique node identification.
+  string node_id = 1;
+
+  // Sequence ID to discern multiple nodes with same nodeId.
+  uint32 sequence_id = 2;
+
+  // A user-defined, human-readable name or descriptor.
+  string node_descriptor = 3;
+
+  // True: node is part of the base. False: node is part of the horizon.
+  bool released = 4;
+
+  // Node position. Optional — fleet control has this information; can be
+  // sent additionally for debugging.
+  NodeStatePosition node_position = 5;
+}
+
+// Slim node-position used inside NodeState. x and y required, theta optional.
+message NodeStatePosition {
+  double x = 1;
+  double y = 2;
+  optional double theta = 3;
+  string map_id = 4;
+}
+
+// State of an edge in the order.
+message EdgeState {
+  // Unique edge identification.
+  string edge_id = 1;
+
+  // Sequence ID to differentiate between multiple edges with the same edgeId.
+  uint32 sequence_id = 2;
+
+  // A user-defined, human-readable name or descriptor.
+  string edge_descriptor = 3;
+
+  // True: edge is part of the base. False: edge is part of the horizon.
+  bool released = 4;
+
+  // Trajectory defined a priori within a layout or sent for this edge as
+  // part of the order.
+  Trajectory trajectory = 5;
+}
+
+// Velocity of the mobile robot in mobile robot coordinates.
+message Velocity {
+  // Velocity in mobile robot's X-direction [m/s].
+  optional double vx = 1;
+  // Velocity in mobile robot's Y-direction [m/s].
+  optional double vy = 2;
+  // Turning speed around the mobile robot's Z-axis [rad/s].
+  optional double omega = 3;
+}
+
+// Position of the mobile robot on a map in world coordinates.
+message MobileRobotPosition {
+  // X-coordinate [m].
+  double x = 1;
+  // Y-coordinate [m].
+  double y = 2;
+  // Orientation [rad]. Range: -PI .. PI.
+  double theta = 3;
+  // Unique identification of the map.
+  string map_id = 4;
+  // True: the mobile robot is localized. x, y, theta can be trusted.
+  // False: the mobile robot is not localized. x, y, theta cannot be trusted.
+  bool localized = 5;
+  // Quality of the localization. 0.0 unknown, 1.0 known. Optional.
+  optional double localization_score = 6;
+  // Position deviation range [m]. Optional.
+  optional double deviation_range = 7;
+}
+
+// A path within the mobile robot's currently active order, expressed as a
+// NURBS trajectory.
+message PlannedPath {
+  // NURBS trajectory of the planned path.
+  Trajectory trajectory = 1;
+  // nodeIds in the currently executed order that are traversed within the
+  // shared planned path.
+  repeated string traversed_nodes = 2;
+}
+
+// Intermediate path — ETA at closer waypoints the mobile robot can perceive
+// with its sensors.
+message IntermediatePath {
+  // Endpoints of the polyline segments.
+  repeated PolylinePoint polyline = 1;
+}
+
+// A polyline segment endpoint with an estimated time of arrival.
+message PolylinePoint {
+  // X-coordinate in the project-specific coordinate system [m].
+  double x = 1;
+  // Y-coordinate in the project-specific coordinate system [m].
+  double y = 2;
+  // Absolute orientation of the mobile robot [rad]. Range: -PI .. PI.
+  optional double theta = 3;
+  // Estimated time of arrival / traversal. ISO 8601 UTC with ms precision.
+  google.protobuf.Timestamp eta = 4;
+}
+
+// Load that is currently handled by the mobile robot.
+message Load {
+  // Unique identification number of the load (e.g., barcode or RFID).
+  // Empty if the robot can identify the load but has not done so yet.
+  string load_id = 1;
+  // Type of load.
+  string load_type = 2;
+  // Load handling/carrying unit in use (e.g., "front", "back", "positionC1").
+  // Optional for vehicles with only one load position.
+  string load_position = 3;
+  // Point of reference for the location of the load's bounding box.
+  BoundingBoxReference bounding_box_reference = 4;
+  // Dimensions of the load's bounding box.
+  BoundingBox load_dimensions = 5;
+  // Absolute weight of the load [kg]. Range: >= 0.
+  optional double weight = 6;
+}
+
+// Zone information sent by the mobile robot to fleet control.
+message ZoneRequest {
+  // Unique per mobile robot identifier within all active requests.
+  string request_id = 1;
+  // Type of zone the request relates to.
+  RequestType request_type = 2;
+  // Locally (within the zone set) unique identifier referencing the zone.
+  string zone_id = 3;
+  // The zone set this zone belongs to.
+  string zone_set_id = 4;
+  // Current status of the request.
+  RequestStatus request_status = 5;
+  // Trajectory associated with the request. Optional.
+  Trajectory trajectory = 6;
+}
+
+// Edge request information sent by the mobile robot to fleet control.
+message EdgeRequest {
+  // Unique per mobile robot identifier across all active requests.
+  string request_id = 1;
+  // Type of edge the request relates to.
+  RequestType request_type = 2;
+  // Globally unique identifier referencing the edge.
+  string edge_id = 3;
+  // Tracking number for the sequence of the edge within the order.
+  uint32 sequence_id = 4;
+  // Current status of the request.
+  RequestStatus request_status = 5;
+}
+
+// An error reported in the state.
+message Error {
+  // Error type. Extensible enumeration; predefined values are described
+  // in the VDA 5050 document.
+  string error_type = 1;
+  // Array of references (e.g., nodeId, edgeId, orderId, actionId) to
+  // provide more information related to the error.
+  repeated Reference error_references = 2;
+  // Verbose description providing details and possible causes.
+  string error_description = 3;
+  // Translations of error_description.
+  repeated Translation error_description_translations = 4;
+  // Hint on how to approach or solve the reported error.
+  string error_hint = 5;
+  // Translations of error_hint.
+  repeated Translation error_hint_translations = 6;
+  // Severity of the error.
+  ErrorLevel error_level = 7;
+}
+
+// An informational entry reported in the state.
+message Info {
+  // Type/name of the information.
+  string info_type = 1;
+  // Array of references (e.g., headerId, orderId, actionId).
+  repeated Reference info_references = 2;
+  // A user-defined, human-readable name or descriptor.
+  string info_descriptor = 3;
+  // Severity of the information.
+  InfoLevel info_level = 4;
+}
